@@ -103,6 +103,9 @@ void CW_StartRecording(uint8_t macroIndex);
 // Stop recording and save
 void CW_StopRecording(void);
 
+void CW_Backspace(void);
+void CW_Space(void);
+
 // TX character display buffer (for showing what's being transmitted)
 #define CW_TX_DISPLAY_SIZE 16
 extern char gCW_TX_Display[CW_TX_DISPLAY_SIZE];
@@ -118,5 +121,6 @@ void CW_ClearTxDisplay(void);
 // Get last N characters from TX display buffer
 // Returns number of characters copied
 uint8_t CW_GetTxDisplayTail(char *display, uint8_t maxLen);
+uint8_t CW_GetRecordBufferTail(char *display, uint8_t maxLen);
 
 #endif

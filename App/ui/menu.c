@@ -1427,7 +1427,7 @@ void UI_DisplayMenu(void)
 
 					// Recording mode - show accumulated characters
 					char display[10];
-					const uint8_t display_len = CW_GetTxDisplayTail(display, sizeof(display));
+					const uint8_t display_len = CW_GetRecordBufferTail(display, sizeof(display));
 					
 					// Display the recording text on line 2
 					UI_PrintString(display, menu_item_x1, 0, 2, 8);

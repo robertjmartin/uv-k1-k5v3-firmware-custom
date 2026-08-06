@@ -2335,6 +2335,10 @@ static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 		gCwKeyInputCheckFailed = false;  // Clear error when changing value with UP/DOWN
 	if (gIsInSubMenu && (UI_MENU_GetCurrentMenuId() >= MENU_CW_MSG1 && UI_MENU_GetCurrentMenuId() <= MENU_CW_MSG4))
 		gCwNoKeyerError = false;  // Clear error when changing value with UP/DOWN
+    if (gCW_Recording && Direction > 0 )
+        CW_Backspace();
+    if (gCW_Recording && Direction < 0 )
+        CW_Space();
 #endif
 
     if (!gIsInSubMenu)

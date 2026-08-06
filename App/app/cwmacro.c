@@ -452,7 +452,8 @@ void CW_EncoderProcessElement(CW_ElementType_t element)
 		// Also reset encoder state for next character
 		s_encoder_pattern = 0;
 		s_encoder_length = 0;
-		s_encoder_space_pending = true;
+		if (!gCW_Recording)
+			s_encoder_space_pending = true;
 		s_encoder_overflow = false;
 		break;
 	}
@@ -499,6 +500,62 @@ void CW_StopRecording(void)
 	gCW_Recording = false;
 	gCW_RecordNewChar = false;
 	CW_ClearTxDisplay();
+}
+
+void CW_Backspace(void)
+{
+	if (!gCW_Recording || gCW_RecordLength == 0) 
+		return;
+
+	gCW_RecordBuffer[gCW_RecordLength--] = 0;
+	gCW_RecordNewChar = true;	
+	gUpdateDisplay = true;
+}
+
+void CW_Space(void)
+{
+	s_encoder_space_pending = true;
+}
+
+uint8_t CW_GetRecordBufferTail(char *display, uint8_t maxLen)
+{
+    uint8_t start = gCW_RecordLength;
+    uint8_t outputLen = 0U;
+    uint8_t capacity;
+
+    if ((display == NULL) || (maxLen == 0U)) {
+        return 0U;
+    }
+
+    capacity = maxLen - 1U;
+
+    while (start > 0U) {
+        uint16_t index = start - 1U;
+        uint8_t entryLen =
+            CW_MACRO_HAS_SPACE(gCW_RecordBuffer[index]) ? 2U : 1U;
+
+        if (entryLen > (uint8_t)(capacity - outputLen)) {
+            break;
+        }
+
+        outputLen += entryLen;
+        start = index;
+    }
+
+    outputLen = 0U;
+
+    while (start < gCW_RecordLength) {
+        if (CW_MACRO_HAS_SPACE(gCW_RecordBuffer[start])) {
+            display[outputLen++] = ' ';
+        }
+
+        display[outputLen++] =
+            (char)CW_MACRO_GET_CHAR(gCW_RecordBuffer[start++]);
+    }
+
+    display[outputLen] = '\0';
+
+    return outputLen;
 }
 
 void CW_AddToTxDisplay(char ch, bool hasSpace)
