@@ -507,13 +507,26 @@ void CW_Backspace(void)
 	if (!gCW_Recording || gCW_RecordLength == 0) 
 		return;
 
+	// if a space pending only erase that
+	if (s_encoder_space_pending)
+	{
+		s_encoder_space_pending = false;
+		gUpdateDisplay = true;
+		return;
+	}
+
+	// if deleted char had a space, leave as pending for next input
+	s_encoder_space_pending = CW_MACRO_HAS_SPACE(gCW_RecordBuffer[gCW_RecordLength-1]);
+
 	gCW_RecordBuffer[gCW_RecordLength--] = 0;
-	gCW_RecordNewChar = true;	
 	gUpdateDisplay = true;
 }
 
 void CW_Space(void)
 {
+	if (!gCW_Recording || gCW_RecordLength == 0)
+		return;
+	
 	s_encoder_space_pending = true;
 }
 
@@ -528,9 +541,12 @@ uint8_t CW_GetRecordBufferTail(char *display, uint8_t maxLen)
     }
 
     capacity = maxLen - 1U;
+	
+	if (s_encoder_space_pending)
+		capacity--; 
 
     while (start > 0U) {
-        uint16_t index = start - 1U;
+        uint8_t index = start - 1U;
         uint8_t entryLen =
             CW_MACRO_HAS_SPACE(gCW_RecordBuffer[index]) ? 2U : 1U;
 
@@ -552,6 +568,9 @@ uint8_t CW_GetRecordBufferTail(char *display, uint8_t maxLen)
         display[outputLen++] =
             (char)CW_MACRO_GET_CHAR(gCW_RecordBuffer[start++]);
     }
+
+	if (s_encoder_space_pending) 
+		display[outputLen++] = ' ';
 
     display[outputLen] = '\0';
 
