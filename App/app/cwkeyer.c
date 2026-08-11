@@ -113,6 +113,7 @@ typedef enum {
     PB_STATE_INTER_ELEMENT_GAP,
     PB_STATE_INTER_CHAR_GAP,
     PB_STATE_INTER_WORD_GAP,
+    PB_STATE_BEACON_LONG_PULSE,
 } PB_State_t;
 static PB_State_t s_pb_state = PB_STATE_IDLE;
 static bool s_play_space_pending = false;  // indicates next char should be shown with a leading space
@@ -410,6 +411,11 @@ CW_Action_t CW_PlaybackHandleState(void)
             s_pb_state = PB_STATE_INTER_WORD_GAP;
             return CW_ACTION_NONE;
         }
+        if (ch == '+') {
+            s_elem_start_count = cur_count;
+            s_pb_state = PB_STATE_BEACON_LONG_PULSE;
+            return CW_ACTION_CARRIER_ON;
+        }
         // Update TX centerline display with the next char (respect pending space)
         CW_AddToTxDisplay(ch, s_play_space_pending);
         s_play_space_pending = false;
@@ -444,6 +450,15 @@ CW_Action_t CW_PlaybackHandleState(void)
         }
         return CW_ACTION_NONE;
         break;
+    }
+
+    case PB_STATE_BEACON_LONG_PULSE: {
+        const uint32_t elapsed = millis_since(s_elem_start_count);
+        if (elapsed >= 3000) {
+            s_elem_start_count = cur_count;
+            s_pb_state = PB_STATE_INTER_WORD_GAP;
+            return CW_ACTION_CARRIER_OFF;
+        }
     }
 
     case PB_STATE_IDLE:
