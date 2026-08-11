@@ -177,6 +177,18 @@ void (*action_opt_table[])(void) = {
 
 static_assert(ARRAY_SIZE(action_opt_table) == ACTION_OPT_LEN);
 
+uint8_t ACTION_SetPower(uint8_t newLevel) 
+{
+    uint8_t currentPower = gTxVfo->OUTPUT_POWER;
+    if (newLevel <= OUTPUT_POWER_HIGH)
+    {
+        gTxVfo->OUTPUT_POWER = newLevel;
+        gRequestSaveChannel = 1;
+        gRequestDisplayScreen = gScreenToDisplay;
+    }
+    return currentPower;
+}
+
 void ACTION_Power(void)
 {
     if (++gTxVfo->OUTPUT_POWER > OUTPUT_POWER_HIGH)

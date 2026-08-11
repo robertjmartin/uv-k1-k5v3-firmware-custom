@@ -19,6 +19,7 @@
 
 #include "driver/keyboard.h"
 
+uint8_t ACTION_SetPower(uint8_t newLevel);
 void ACTION_Power(void);
 void ACTION_Monitor(void);
 void ACTION_Scan(bool bRestart);

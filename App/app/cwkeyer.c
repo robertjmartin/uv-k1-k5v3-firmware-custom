@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "app/action.h"
 #include "app/cwkeyer.h"
 #include "app/cwhardware.h"
 #include "app/cwmacro.h"
@@ -95,6 +96,9 @@ static bool           s_last_handkey_ptt = false; // last accepted/confirmed PTT
 // Shared between handkey modes and bug dah handling
 static bool           s_handkey_release_pending = false; // true while waiting out the release debounce
 static uint32_t       s_handkey_release_pending_since_ms = 0; // millis() timestamp the release was first observed
+
+static bool           s_restorePower = false; // need to restore power level after beacon pulse
+static uint8_t        s_restorePowerLevel = 0; // power level to restore
 
 #define CW_HANDKEY_RELEASE_DEBOUNCE_MS 40
 
@@ -411,7 +415,14 @@ CW_Action_t CW_PlaybackHandleState(void)
             s_pb_state = PB_STATE_INTER_WORD_GAP;
             return CW_ACTION_NONE;
         }
-        if (ch == '+') {
+        if (ch == '+' || ch == '(' || ch == '&' ) {
+            uint8_t powerLevel = OUTPUT_POWER_HIGH;
+            if (ch == '(') powerLevel = OUTPUT_POWER_MID;
+            if (ch == '&') powerLevel = OUTPUT_POWER_LOW1;
+
+            s_restorePower = true;
+            s_restorePowerLevel = ACTION_SetPower(powerLevel);  
+
             s_elem_start_count = cur_count;
             s_pb_state = PB_STATE_BEACON_LONG_PULSE;
             return CW_ACTION_CARRIER_ON;
@@ -441,6 +452,11 @@ CW_Action_t CW_PlaybackHandleState(void)
     }
 
     case PB_STATE_INTER_WORD_GAP: {
+        // if power level was adjusest for a beacon pulse restore power level
+        if (s_restorePower) {
+            s_restorePower = false;
+            ACTION_SetPower(s_restorePowerLevel);
+        }
         const uint32_t elapsed = millis_since(s_elem_start_count);
         if (elapsed >= s_word_gap_count) {
             // Word gap done - advance to char-gap state with the same origin
