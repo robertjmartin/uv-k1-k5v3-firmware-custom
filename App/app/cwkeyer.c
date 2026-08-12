@@ -27,6 +27,7 @@
 #include "app/cwmacro.h"
 #include "audio.h"
 #include "settings.h"
+#include "radio.h"
 #include "misc.h"
 #include "py32f071_ll_dma.h"
 #include "py32f071_ll_tim.h"
@@ -41,6 +42,7 @@
 #include "driver/uart.h"
 #include "driver/keyboard.h"
 #include "driver/backlight.h"
+#include "driver/bk4819.h"
 #include "ui/welcome.h"
 
 #include "external/printf/printf.h"
@@ -418,10 +420,13 @@ CW_Action_t CW_PlaybackHandleState(void)
         if (ch == '+' || ch == '(' || ch == '&' ) {
             uint8_t powerLevel = OUTPUT_POWER_HIGH;
             if (ch == '(') powerLevel = OUTPUT_POWER_MID;
-            if (ch == '&') powerLevel = OUTPUT_POWER_LOW1;
+            if (ch == '&') powerLevel = OUTPUT_POWER_LOW3;
 
             s_restorePower = true;
-            s_restorePowerLevel = ACTION_SetPower(powerLevel);  
+            s_restorePowerLevel = ACTION_SetPower(powerLevel);
+            // need to force setting down to hardware, since we are mid transmission
+            RADIO_ConfigureSquelchAndOutputPower(gCurrentVfo);
+            BK4819_SetupPowerAmplifier(gCurrentVfo->TXP_CalculatedSetting, gCurrentVfo->pTX->Frequency);
 
             s_elem_start_count = cur_count;
             s_pb_state = PB_STATE_BEACON_LONG_PULSE;
@@ -456,6 +461,9 @@ CW_Action_t CW_PlaybackHandleState(void)
         if (s_restorePower) {
             s_restorePower = false;
             ACTION_SetPower(s_restorePowerLevel);
+            // need to force setting down to hardware, since we are mid transmission
+            RADIO_ConfigureSquelchAndOutputPower(gCurrentVfo);
+            BK4819_SetupPowerAmplifier(gCurrentVfo->TXP_CalculatedSetting, gCurrentVfo->pTX->Frequency);
         }
         const uint32_t elapsed = millis_since(s_elem_start_count);
         if (elapsed >= s_word_gap_count) {
@@ -470,11 +478,12 @@ CW_Action_t CW_PlaybackHandleState(void)
 
     case PB_STATE_BEACON_LONG_PULSE: {
         const uint32_t elapsed = millis_since(s_elem_start_count);
-        if (elapsed >= 3000) {
+        if (elapsed >= 6000) {
             s_elem_start_count = cur_count;
             s_pb_state = PB_STATE_INTER_WORD_GAP;
             return CW_ACTION_CARRIER_OFF;
         }
+        return CW_ACTION_CARRIER_HOLD_ON;
     }
 
     case PB_STATE_IDLE:
